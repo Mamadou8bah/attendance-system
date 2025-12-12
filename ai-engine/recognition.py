@@ -8,11 +8,11 @@ import face_recognition
 import numpy as np
 
 
-DB_PATH = "../backend/db.sqlite"
+DB_PATH = "../backend/attendance.db"
 
 
 def load_students(db_path: str = DB_PATH) -> List[Dict[str, Any]]:
-	"""Fetch students and their encodings from SQLite.
+	"""Fetch students and all their encodings (supports multiple per student).
 
 	Falls back to an empty list if the DB is missing or unreadable so the loop can still run.
 	"""
@@ -20,22 +20,25 @@ def load_students(db_path: str = DB_PATH) -> List[Dict[str, Any]]:
 	try:
 		with sqlite3.connect(db_path) as conn:
 			cur = conn.cursor()
-			cur.execute("SELECT id, name, encoding FROM students")
-			rows = cur.fetchall()
+			cur.execute("SELECT id, name, face_encoding FROM students")
+			students_rows = cur.fetchall()
+			cur.execute("SELECT student_id, face_encoding FROM student_encodings")
+			extra_rows = cur.fetchall()
 	except Exception as exc:
 		print(f"[warn] could not load students from {db_path}: {exc}")
 		return []
 
 	students = []
-	for sid, name, enc in rows:
+	for sid, name, enc in students_rows:
 		if enc:
-			students.append(
-				{
-					"id": sid,
-					"name": name,
-					"encoding": np.frombuffer(enc, dtype=np.float64),
-				}
-			)
+			students.append({"id": sid, "name": name, "encoding": np.frombuffer(enc, dtype=np.float64)})
+
+	for sid, enc in extra_rows:
+		if enc:
+			# Find student name from main rows
+			name = next((r[1] for r in students_rows if r[0] == sid), "Unknown")
+			students.append({"id": sid, "name": name, "encoding": np.frombuffer(enc, dtype=np.float64)})
+
 	return students
 
 
@@ -50,9 +53,9 @@ def _match_student(enc: np.ndarray, student_encodings: List[Dict[str, Any]], tol
 	best_idx = int(np.argmin(distances))
 	if distances[best_idx] <= tolerance:
 		match = student_encodings[best_idx]
-		return {"id": match["id"], "name": match["name"]}
+		return {"id": match["id"], "name": match["name"], "distance": float(distances[best_idx])}
 
-	return {"id": None, "name": "Unknown"}
+	return {"id": None, "name": "Unknown", "distance": float(np.min(distances)) if len(distances) else None}
 
 
 def recognize_faces(frame, student_encodings: List[Dict[str, Any]], tolerance: float = 0.45):

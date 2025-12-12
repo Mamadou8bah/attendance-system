@@ -14,13 +14,29 @@
         </header>
 
         <nav class="tabs">
-            <button class="tab-btn active" onclick="showTab('dashboard')">Dashboard</button>
-            <button class="tab-btn" onclick="showTab('students')">Students</button>
-            <button class="tab-btn" onclick="showTab('reports')">Reports</button>
+            <button class="tab-btn active" onclick="showTab('dashboard', event)">Dashboard</button>
+            <button class="tab-btn" onclick="showTab('students', event)">Students</button>
+            <button class="tab-btn" onclick="showTab('reports', event)">Reports</button>
         </nav>
 
         <!-- Dashboard Tab -->
         <div id="dashboard" class="tab-content active">
+            <div class="section session-control" style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #cce5ff;">
+                <h2 style="margin-top: 0;">Session Control</h2>
+                <div class="control-panel" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+                    <label for="course-select">Course:</label>
+                    <select id="course-select" style="padding: 5px; min-width: 160px;"></select>
+                    <button type="button" onclick="promptNewCourse()" class="primary-btn" style="padding: 6px 10px;">+ Add Course</button>
+
+                    <label for="session-duration">Duration (minutes):</label>
+                    <input type="number" id="session-duration" value="10" min="1" max="120" style="padding: 5px; width: 60px;">
+                    <button id="start-session-btn" onclick="startSession()" class="primary-btn" style="background-color: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">Start Session</button>
+                    <button id="stop-session-btn" onclick="stopSession()" disabled class="danger-btn" style="background-color: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; opacity: 0.6;">Stop Session</button>
+                    <span id="session-timer" class="timer" style="font-size: 1.2em; font-weight: bold; margin-left: auto;">00:00</span>
+                </div>
+                <p style="margin-bottom: 0; margin-top: 10px; font-size: 0.9em; color: #666;">Concentration data is only recorded while a session is active. Sessions are now tied to a specific course.</p>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card">
                     <h3>Total Students</h3>
@@ -57,7 +73,7 @@
                 <h2>Register New Student</h2>
                 <form id="student-form" class="form">
                     <input type="text" id="student-name" placeholder="Student Name" required>
-                    <input type="file" id="student-photo" accept="image/*">
+                    <input type="file" id="student-photo" accept="image/*" multiple>
                     <button type="submit">Register Student</button>
                 </form>
             </div>
@@ -68,13 +84,48 @@
             </div>
         </div>
 
+        <!-- Student Detail Modal -->
+        <div id="student-detail-modal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeStudentDetail()">&times;</span>
+                <h2 id="student-detail-name">Student Details</h2>
+                <div id="student-detail-body" class="student-detail-body"></div>
+            </div>
+        </div>
+
         <!-- Reports Tab -->
         <div id="reports" class="tab-content">
             <div class="section">
-                <h2>Daily Report</h2>
-                <div class="report-controls">
-                    <input type="date" id="report-date" value="">
-                    <button onclick="loadDailyReport()">Load Report</button>
+                <h2>Reports</h2>
+                <div class="report-controls" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+                    <select id="report-type" onchange="toggleReportInputs()" style="padding: 8px; border-radius: 4px;">
+                        <option value="daily">Daily Report</option>
+                        <option value="weekly">Weekly Report</option>
+                        <option value="overall">Overall Report</option>
+                        <option value="course-overall">Course Overall</option>
+                        <option value="course-session">Course Per Session</option>
+                    </select>
+                    
+                    <div id="daily-inputs">
+                        <input type="date" id="report-date" style="padding: 8px; border-radius: 4px;">
+                    </div>
+                    
+                    <div id="weekly-inputs" style="display: none;">
+                        <!-- Weekly inputs can be auto-calculated or range picker, for simplicity we'll just use current week or specific start date -->
+                        <span style="font-size: 0.9em; color: #666;">(Current Week)</span>
+                    </div>
+
+                    <div id="course-inputs" style="display: none; align-items: center; gap: 8px;">
+                        <label for="report-course-select" style="font-size: 0.9em;">Course:</label>
+                        <select id="report-course-select" style="padding: 6px; min-width: 160px;"></select>
+                    </div>
+
+                    <div id="course-session-inputs" style="display: none; align-items: center; gap: 8px;">
+                        <label for="report-session-select" style="font-size: 0.9em;">Session:</label>
+                        <select id="report-session-select" style="padding: 6px; min-width: 140px;"></select>
+                    </div>
+
+                    <button onclick="loadReport()" class="primary-btn" style="padding: 8px 15px;">Load Report</button>
                 </div>
             </div>
 

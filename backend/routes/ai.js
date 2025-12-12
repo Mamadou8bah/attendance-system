@@ -1,5 +1,6 @@
 const express = require('express');
 const { dbHelpers } = require('../db');
+const sessionStore = require('../sessionStore');
 
 const router = express.Router();
 
@@ -10,6 +11,12 @@ router.post('/process-frame', (req, res, next) => {
     session_date,
     session_time
   } = req.body;
+
+  // Check session status
+  const sessionState = sessionStore.getState();
+  const isSessionActive = sessionState.isActive;
+  const courseId = sessionState.courseId || null;
+  const courseSessionId = sessionState.courseSessionId || null;
 
   if (!detections || !Array.isArray(detections)) {
     return res.status(400).json({ 
@@ -30,8 +37,9 @@ router.post('/process-frame', (req, res, next) => {
   }
 
   detections.forEach(d => {
-    if (d.student_id) {
-      dbHelpers.recordAttendance(d.student_id, date, time, (err, att) => {
+    // Only record attendance if session is active
+    if (d.student_id && isSessionActive) {
+      dbHelpers.recordAttendance(d.student_id, date, time, courseSessionId, courseId, (err, att) => {
         processed++;
         if (err) results.errors.push({ type: 'attendance', student_id: d.student_id, error: err.message });
         else results.attendance.push(att);
@@ -45,19 +53,33 @@ router.post('/process-frame', (req, res, next) => {
 
   if (engagement_data && Array.isArray(engagement_data)) {
     engagement_data.forEach(e => {
-      if (e.student_id) {
-        dbHelpers.recordEngagement(e.student_id, date, time, e.attention_score || 0, 
-          e.eyes_open !== false, e.facing_camera !== false, (err, result) => {
+      // Only record engagement if session is active
+      if (e.student_id && isSessionActive) {
+        dbHelpers.recordEngagement(
+          e.student_id,
+          date,
+          time,
+          e.attention_score || 0,
+          e.eyes_open !== false,
+          e.facing_camera !== false,
+          courseSessionId,
+          courseId,
+          (err, result) => {
           processed++;
           if (err) results.errors.push({ type: 'engagement', student_id: e.student_id, error: err.message });
           else results.engagement.push(result);
           if (processed === total) sendResponse();
-        });
+        }
+        );
       } else {
+        // Skip engagement recording if no session or no student_id
         processed++;
         if (processed === total) sendResponse();
       }
     });
+  } else {
+    // If no engagement data, check if we are done
+    if (processed === total) sendResponse();
   }
 
   function sendResponse() {
@@ -101,15 +123,28 @@ router.post('/engagement', (req, res, next) => {
   const date = session_date || new Date().toISOString().split('T')[0];
   const time = session_time || new Date().toTimeString().split(' ')[0];
 
-  dbHelpers.recordEngagement(student_id, date, time, parseFloat(attention_score),
-    eyes_open !== false, facing_camera !== false, (err, result) => {
+  const sessionState = sessionStore.getState();
+  const courseId = sessionState.courseId || null;
+  const courseSessionId = sessionState.courseSessionId || null;
+
+  dbHelpers.recordEngagement(
+    student_id,
+    date,
+    time,
+    parseFloat(attention_score),
+    eyes_open !== false,
+    facing_camera !== false,
+    courseSessionId,
+    courseId,
+    (err, result) => {
     if (err) return next(err);
     res.status(201).json({
       success: true,
       message: 'Engagement data recorded successfully',
       engagement: { ...result, student_id, attention_score: parseFloat(attention_score), session_date: date, session_time: time }
     });
-  });
+  }
+  );
 });
 
 // GET /api/ai/engagement/:student_id - Get engagement data for a student

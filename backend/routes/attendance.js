@@ -4,7 +4,7 @@ const { dbHelpers } = require('../db');
 const router = express.Router();
 
 router.post('/', (req, res, next) => {
-  const { student_id, session_date, session_time } = req.body;
+  const { student_id, session_date, session_time, course_id, course_session_id } = req.body;
 
   if (!student_id) {
     return res.status(400).json({ 
@@ -16,7 +16,10 @@ router.post('/', (req, res, next) => {
   const date = session_date || new Date().toISOString().split('T')[0];
   const time = session_time || new Date().toTimeString().split(' ')[0];
 
-  dbHelpers.recordAttendance(student_id, date, time, (err, attendance) => {
+  const courseId = course_id ? parseInt(course_id) : null;
+  const courseSessionId = course_session_id ? parseInt(course_session_id) : null;
+
+  dbHelpers.recordAttendance(student_id, date, time, courseSessionId, courseId, (err, attendance) => {
     if (err) {
       return next(err);
     }
@@ -82,7 +85,7 @@ router.get('/', (req, res, next) => {
 
 // POST /api/attendance/bulk - Record attendance for multiple students at once
 router.post('/bulk', (req, res, next) => {
-  const { student_ids, session_date, session_time } = req.body;
+  const { student_ids, session_date, session_time, course_id, course_session_id } = req.body;
 
   if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
     return res.status(400).json({ 
@@ -93,13 +96,15 @@ router.post('/bulk', (req, res, next) => {
 
   const date = session_date || new Date().toISOString().split('T')[0];
   const time = session_time || new Date().toTimeString().split(' ')[0];
+  const courseId = course_id ? parseInt(course_id) : null;
+  const courseSessionId = course_session_id ? parseInt(course_session_id) : null;
   
   const results = [];
   let completed = 0;
   let errors = [];
 
   student_ids.forEach((studentId) => {
-    dbHelpers.recordAttendance(studentId, date, time, (err, attendance) => {
+    dbHelpers.recordAttendance(studentId, date, time, courseSessionId, courseId, (err, attendance) => {
       completed++;
       if (err) {
         errors.push({ student_id: studentId, error: err.message });

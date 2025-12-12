@@ -3,6 +3,28 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { dbHelpers } = require('../db');
+const { spawnSync } = require('child_process');
+
+const AI_ENCODER = path.join(__dirname, '..', '..', 'ai-engine', 'add_encoding.py');
+
+function encodePhoto(studentId, photoPath) {
+  if (!photoPath) return false;
+  const abs = path.resolve(photoPath);
+  const py = process.env.PYTHON || 'python';
+  console.log('Encoding photo:', { studentId, photoPath: abs, encoder: AI_ENCODER });
+  console.log('Encoder exists:', fs.existsSync(AI_ENCODER));
+  console.log('Image exists:', fs.existsSync(abs));
+  const result = spawnSync(py, [AI_ENCODER, '--student-id', String(studentId), '--image', abs], {
+    cwd: path.join(__dirname, '..', '..'),
+    encoding: 'utf-8',
+  });
+  console.log('Encode result:', { status: result.status, stdout: result.stdout, stderr: result.stderr });
+  if (result.status !== 0) {
+    console.warn('Auto-encode failed:', result.stderr || result.stdout || `code ${result.status}`);
+    return false;
+  }
+  return true;
+}
 
 const router = express.Router();
 
@@ -78,8 +100,8 @@ router.get('/:id', (req, res, next) => {
   });
 });
 
-router.post('/', upload.single('photo'), (req, res, next) => {
-  const { name, face_encoding } = req.body;
+router.post('/', upload.array('photos', 5), (req, res, next) => {
+  const { name, face_encoding, face_encodings } = req.body;
 
   if (!name || name.trim() === '') {
     return res.status(400).json({ 
@@ -88,36 +110,68 @@ router.post('/', upload.single('photo'), (req, res, next) => {
     });
   }
 
-  const photoPath = req.file ? req.file.path : null;
+  const photoPaths = (req.files || []).map(f => f.path);
+  const primaryPhoto = photoPaths.length > 0 ? photoPaths[0] : null;
   
-  let faceEncoding = null;
-  if (face_encoding) {
+  // Collect encodings: single value or array (JSON or base64 strings)
+  const parsedEncodings = [];
+  const encInputs = [];
+  if (face_encoding) encInputs.push(face_encoding);
+  if (face_encodings) {
     try {
-      if (face_encoding.startsWith('[')) {
-        faceEncoding = JSON.parse(face_encoding);
-      } else {
-        faceEncoding = Buffer.from(face_encoding, 'base64');
-      }
+      const arr = JSON.parse(face_encodings);
+      if (Array.isArray(arr)) encInputs.push(...arr);
     } catch (e) {
-      console.warn('Could not parse face encoding:', e.message);
+      // ignore malformed batch encodings
     }
   }
-
-  dbHelpers.createStudent(name.trim(), photoPath, faceEncoding, (err, student) => {
-    if (err) {
-      if (photoPath && fs.existsSync(photoPath)) {
-        fs.unlinkSync(photoPath);
+  encInputs.forEach(val => {
+    try {
+      if (typeof val === 'string' && val.startsWith('[')) {
+        parsedEncodings.push(Buffer.from(JSON.parse(val)));
+      } else if (typeof val === 'string') {
+        parsedEncodings.push(Buffer.from(val, 'base64'));
+      } else if (Array.isArray(val)) {
+        parsedEncodings.push(Buffer.from(val));
       }
+    } catch (e) {
+      console.warn('Could not parse face encoding entry:', e.message);
+    }
+  });
+
+  dbHelpers.createStudent(name.trim(), primaryPhoto, parsedEncodings[0], (err, student) => {
+    if (err) {
+      photoPaths.forEach(p => fs.existsSync(p) && fs.unlinkSync(p));
       return next(err);
     }
+
+    // Store additional encodings if provided
+    if (parsedEncodings.length > 1) {
+      parsedEncodings.slice(1).forEach(enc => {
+        dbHelpers.addStudentEncoding(student.id, enc, () => {});
+      });
+    }
+
+    // Store extra photos if provided
+    if (photoPaths.length > 1) {
+      // keep primary in students table; extra photos are just saved on disk for now
+    }
+
+    // Auto-generate encodings from all uploaded photos (primary + extras)
+    const autoResults = photoPaths.map(p => encodePhoto(student.id, p));
+    const autoSuccess = autoResults.filter(Boolean).length;
 
     res.status(201).json({
       success: true,
       message: 'Student registered successfully',
       student: {
         ...student,
-        photo_url: photoPath ? `/uploads/${path.basename(photoPath)}` : null
-      }
+        photo_url: primaryPhoto ? `/uploads/${path.basename(primaryPhoto)}` : null,
+        photos: photoPaths.map(p => `/uploads/${path.basename(p)}`),
+        encodings_saved: parsedEncodings.length
+      },
+      auto_encoded: autoSuccess,
+      auto_encode_failed: photoPaths.length - autoSuccess
     });
   });
 });

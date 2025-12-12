@@ -69,7 +69,7 @@ def run():
             mesh_result = FACE_MESH.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
             attention_flag = False
             if mesh_result.multi_face_landmarks:
-                attention_flag = is_attentive(mesh_result.multi_face_landmarks[0].landmark)
+                attention_flag = is_attentive(mesh_result.multi_face_landmarks[0].landmark, frame.shape)
 
             for r in recognized:
                 top, right, bottom, left = r["box"]

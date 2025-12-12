@@ -18,6 +18,32 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
   }
 });
 
+// Helper to ensure a column exists before attempting to add it (for migrations)
+function ensureColumn(table, column, definition, callback) {
+  db.all(`PRAGMA table_info(${table})`, [], (err, rows) => {
+    if (err) {
+      console.error(`Error checking table info for ${table}:`, err.message);
+      if (callback) callback(err);
+      return;
+    }
+
+    const exists = rows.some(r => r.name === column);
+    if (exists) {
+      if (callback) callback(null);
+      return;
+    }
+
+    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`, [], (alterErr) => {
+      if (alterErr) {
+        console.error(`Error adding column ${column} to ${table}:`, alterErr.message);
+      } else {
+        console.log(`Added column ${column} to ${table}`);
+      }
+      if (callback) callback(alterErr || null);
+    });
+  });
+}
+
 function initializeDatabase() {
   db.run(`
     CREATE TABLE IF NOT EXISTS students (
@@ -88,6 +114,66 @@ function initializeDatabase() {
       console.log('Sessions table ready');
     }
   });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS student_encodings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      face_encoding BLOB NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES students(id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating student_encodings table:', err.message);
+    } else {
+      console.log('Student encodings table ready');
+    }
+  });
+
+  // Courses and course sessions
+  db.run(`
+    CREATE TABLE IF NOT EXISTS courses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      code TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating courses table:', err.message);
+    } else {
+      console.log('Courses table ready');
+    }
+  });
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS course_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      course_id INTEGER NOT NULL,
+      session_number INTEGER NOT NULL,
+      session_date DATE NOT NULL,
+      start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+      end_time DATETIME,
+      total_students INTEGER DEFAULT 0,
+      avg_engagement REAL DEFAULT 0,
+      FOREIGN KEY (course_id) REFERENCES courses(id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating course_sessions table:', err.message);
+    } else {
+      console.log('Course sessions table ready');
+    }
+  });
+
+  // Migration: add course-related columns to existing tables if missing
+  ensureColumn('attendance', 'course_id', 'INTEGER', () => {});
+  ensureColumn('attendance', 'course_session_id', 'INTEGER', () => {});
+  ensureColumn('engagement', 'course_id', 'INTEGER', () => {});
+  ensureColumn('engagement', 'course_session_id', 'INTEGER', () => {});
+  ensureColumn('sessions', 'course_id', 'INTEGER', () => {});
+  ensureColumn('sessions', 'session_number', 'INTEGER', () => {});
 }
 
 const dbHelpers = {
@@ -106,6 +192,27 @@ const dbHelpers = {
     );
   },
 
+  addStudentEncoding: (studentId, faceEncoding, callback) => {
+    const encodingBlob = faceEncoding ? Buffer.from(faceEncoding) : null;
+    db.run(
+      'INSERT INTO student_encodings (student_id, face_encoding) VALUES (?, ?)',
+      [studentId, encodingBlob],
+      function(err) {
+        if (err) {
+          callback(err, null);
+        } else {
+          callback(null, { id: this.lastID, student_id: studentId });
+        }
+      }
+    );
+  },
+
+  getStudentEncodings: (callback) => {
+    db.all('SELECT student_id, face_encoding FROM student_encodings', [], (err, rows) => {
+      callback(err, rows);
+    });
+  },
+
   getAllStudents: (callback) => {
     db.all('SELECT id, name, photo_path, created_at FROM students ORDER BY name', [], (err, rows) => {
       callback(err, rows);
@@ -118,15 +225,17 @@ const dbHelpers = {
     });
   },
 
-  recordAttendance: (studentId, sessionDate, sessionTime, callback) => {
+  // Record attendance for a (possibly course-specific) session
+  // studentId, sessionDate, sessionTime, courseSessionId, courseId, callback
+  recordAttendance: (studentId, sessionDate, sessionTime, courseSessionId, courseId, callback) => {
     db.run(
-      'INSERT INTO attendance (student_id, session_date, session_time) VALUES (?, ?, ?)',
-      [studentId, sessionDate, sessionTime],
+      'INSERT INTO attendance (student_id, session_date, session_time, course_session_id, course_id) VALUES (?, ?, ?, ?, ?)',
+      [studentId, sessionDate, sessionTime, courseSessionId || null, courseId || null],
       function(err) {
         if (err) {
           callback(err, null);
         } else {
-          callback(null, { id: this.lastID, student_id: studentId });
+          callback(null, { id: this.lastID, student_id: studentId, course_session_id: courseSessionId || null, course_id: courseId || null });
         }
       }
     );
@@ -156,16 +265,18 @@ const dbHelpers = {
     );
   },
 
-  recordEngagement: (studentId, sessionDate, sessionTime, attentionScore, eyesOpen, facingCamera, callback) => {
+  // Record engagement for a (possibly course-specific) session
+  // studentId, sessionDate, sessionTime, attentionScore, eyesOpen, facingCamera, courseSessionId, courseId, callback
+  recordEngagement: (studentId, sessionDate, sessionTime, attentionScore, eyesOpen, facingCamera, courseSessionId, courseId, callback) => {
     db.run(
-      `INSERT INTO engagement (student_id, session_date, session_time, attention_score, eyes_open, facing_camera) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [studentId, sessionDate, sessionTime, attentionScore, eyesOpen ? 1 : 0, facingCamera ? 1 : 0],
+      `INSERT INTO engagement (student_id, session_date, session_time, attention_score, eyes_open, facing_camera, course_session_id, course_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [studentId, sessionDate, sessionTime, attentionScore, eyesOpen ? 1 : 0, facingCamera ? 1 : 0, courseSessionId || null, courseId || null],
       function(err) {
         if (err) {
           callback(err, null);
         } else {
-          callback(null, { id: this.lastID });
+          callback(null, { id: this.lastID, course_session_id: courseSessionId || null, course_id: courseId || null });
         }
       }
     );
@@ -195,26 +306,57 @@ const dbHelpers = {
     );
   },
 
-  createSession: (sessionDate, callback) => {
-    db.run(
-      'INSERT INTO sessions (session_date) VALUES (?)',
-      [sessionDate],
-      function(err) {
+  // Create a new session for a course (increments session_number per course)
+  createCourseSession: (courseId, sessionDate, callback) => {
+    db.get(
+      'SELECT COALESCE(MAX(session_number), 0) + 1 AS next_num FROM course_sessions WHERE course_id = ?',
+      [courseId],
+      (err, row) => {
         if (err) {
-          callback(err, null);
-        } else {
-          callback(null, { id: this.lastID, session_date: sessionDate });
+          return callback(err, null);
         }
+        const nextNum = row ? row.next_num : 1;
+        db.run(
+          'INSERT INTO course_sessions (course_id, session_number, session_date) VALUES (?, ?, ?)',
+          [courseId, nextNum, sessionDate],
+          function(insertErr) {
+            if (insertErr) {
+              callback(insertErr, null);
+            } else {
+              callback(null, { id: this.lastID, course_id: courseId, session_number: nextNum, session_date: sessionDate });
+            }
+          }
+        );
       }
     );
   },
 
-  endSession: (sessionId, totalStudents, avgEngagement, callback) => {
-    db.run(
-      'UPDATE sessions SET end_time = CURRENT_TIMESTAMP, total_students = ?, avg_engagement = ? WHERE id = ?',
-      [totalStudents, avgEngagement, sessionId],
-      (err) => {
-        callback(err);
+  // Finalize a course session with summary stats
+  finalizeCourseSession: (courseSessionId, callback) => {
+    db.get(
+      'SELECT COUNT(DISTINCT student_id) as total_students FROM attendance WHERE course_session_id = ?',
+      [courseSessionId],
+      (err, attendanceRow) => {
+        if (err) return callback(err);
+
+        db.get(
+          'SELECT AVG(attention_score) as avg_engagement FROM engagement WHERE course_session_id = ?',
+          [courseSessionId],
+          (engErr, engagementRow) => {
+            if (engErr) return callback(engErr);
+
+            const totalStudents = attendanceRow ? attendanceRow.total_students || 0 : 0;
+            const avgEng = engagementRow && engagementRow.avg_engagement != null
+              ? engagementRow.avg_engagement
+              : 0;
+
+            db.run(
+              'UPDATE course_sessions SET end_time = CURRENT_TIMESTAMP, total_students = ?, avg_engagement = ? WHERE id = ?',
+              [totalStudents, avgEng, courseSessionId],
+              (updateErr) => callback(updateErr)
+            );
+          }
+        );
       }
     );
   },
@@ -240,6 +382,44 @@ const dbHelpers = {
     );
   },
 
+  getWeeklyReport: (startDate, endDate, callback) => {
+    db.all(
+      `SELECT 
+        s.id as student_id,
+        s.name,
+        COUNT(DISTINCT a.session_date) as days_present,
+        AVG(e.attention_score) as avg_engagement
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id AND a.session_date BETWEEN ? AND ?
+      LEFT JOIN engagement e ON s.id = e.student_id AND e.session_date BETWEEN ? AND ?
+      GROUP BY s.id, s.name
+      ORDER BY s.name`,
+      [startDate, endDate, startDate, endDate],
+      (err, rows) => {
+        callback(err, rows);
+      }
+    );
+  },
+
+  getOverallReport: (callback) => {
+    db.all(
+      `SELECT 
+        s.id as student_id,
+        s.name,
+        COUNT(DISTINCT a.session_date) as total_days_present,
+        AVG(e.attention_score) as avg_engagement
+      FROM students s
+      LEFT JOIN attendance a ON s.id = a.student_id
+      LEFT JOIN engagement e ON s.id = e.student_id
+      GROUP BY s.id, s.name
+      ORDER BY s.name`,
+      [],
+      (err, rows) => {
+        callback(err, rows);
+      }
+    );
+  },
+
   getDashboardData: (callback) => {
     const today = new Date().toISOString().split('T')[0];
     db.all(
@@ -254,6 +434,81 @@ const dbHelpers = {
       (err, rows) => {
         callback(err, rows[0] || { total_students: 0, present_today: 0, avg_engagement_today: 0 });
       }
+    );
+  },
+
+  // Courses helpers
+  createCourse: (name, code, callback) => {
+    db.run(
+      'INSERT INTO courses (name, code) VALUES (?, ?)',
+      [name, code || null],
+      function(err) {
+        if (err) {
+          callback(err, null);
+        } else {
+          callback(null, { id: this.lastID, name, code: code || null });
+        }
+      }
+    );
+  },
+
+  getCourses: (callback) => {
+    db.all(
+      `SELECT c.id, c.name, c.code,
+              COUNT(cs.id) as session_count
+       FROM courses c
+       LEFT JOIN course_sessions cs ON c.id = cs.course_id
+       GROUP BY c.id, c.name, c.code
+       ORDER BY c.name`,
+      [],
+      (err, rows) => callback(err, rows)
+    );
+  },
+
+  getCourseSessions: (courseId, callback) => {
+    db.all(
+      `SELECT id, course_id, session_number, session_date, start_time, end_time, total_students, avg_engagement
+       FROM course_sessions
+       WHERE course_id = ?
+       ORDER BY session_number`,
+      [courseId],
+      (err, rows) => callback(err, rows)
+    );
+  },
+
+  getCourseOverallReport: (courseId, callback) => {
+    db.all(
+      `SELECT 
+        s.id as student_id,
+        s.name,
+        COUNT(DISTINCT a.course_session_id) as total_sessions_present,
+        AVG(e.attention_score) as avg_engagement
+       FROM students s
+       LEFT JOIN attendance a ON s.id = a.student_id AND a.course_id = ?
+       LEFT JOIN engagement e ON s.id = e.student_id AND e.course_id = ?
+       GROUP BY s.id, s.name
+       ORDER BY s.name`,
+      [courseId, courseId],
+      (err, rows) => callback(err, rows)
+    );
+  },
+
+  getCourseSessionReport: (courseId, courseSessionId, callback) => {
+    db.all(
+      `SELECT 
+        s.id as student_id,
+        s.name,
+        COUNT(a.id) as attendance_count,
+        AVG(e.attention_score) as avg_engagement,
+        MAX(e.attention_score) as max_engagement,
+        MIN(e.attention_score) as min_engagement
+       FROM students s
+       LEFT JOIN attendance a ON s.id = a.student_id AND a.course_id = ? AND a.course_session_id = ?
+       LEFT JOIN engagement e ON s.id = e.student_id AND e.course_id = ? AND e.course_session_id = ?
+       GROUP BY s.id, s.name
+       ORDER BY s.name`,
+      [courseId, courseSessionId, courseId, courseSessionId],
+      (err, rows) => callback(err, rows)
     );
   }
 };
