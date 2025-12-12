@@ -1,0 +1,6 @@
+opencv-python
+face_recognition
+mediapipe
+numpy
+requests
+flask
