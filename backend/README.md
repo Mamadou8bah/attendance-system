@@ -2,7 +2,7 @@
 
 This is the backend API for the hackathon project. It provides REST endpoints for student registration, attendance tracking, engagement monitoring, and reporting.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js (v14 or higher)
@@ -139,7 +139,7 @@ The server will run on `http://localhost:3000` by default.
 - **GET** `/api/reports/dashboard`
   - Returns dashboard overview with trends and top students
 
-## 🗄️ Database Schema
+## Database Schema
 
 The backend uses SQLite with the following tables:
 
@@ -179,7 +179,7 @@ data = {
 response = requests.post("http://localhost:3000/api/ai/process-frame", json=data)
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 backend/
@@ -194,7 +194,7 @@ backend/
 └── attendance.db      # SQLite database (created automatically)
 ```
 
-## 🔒 Privacy & Local Processing
+## Privacy & Local Processing
 
 - All data is stored locally in SQLite
 - No cloud uploads
@@ -216,7 +216,7 @@ curl http://localhost:3000/api/students
 curl http://localhost:3000/api/reports/dashboard
 ```
 
-## 📝 Notes
+## Notes
 
 - The server automatically creates the database and tables on first run
 - Photo uploads are limited to 5MB
