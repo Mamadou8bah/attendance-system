@@ -11,11 +11,22 @@ Thumbs.db
 /backend/.env
 /backend/npm-debug.log
 /backend/yarn-error.log
+/backend/package-lock.json
 
 # SQLite database (should not be in Git)
 backend/db.sqlite
 backend/*.sqlite
 backend/*.sqlite-journal
+backend/*.db
+backend/*.db-journal
+backend/attendance.db
+
+# Backend uploads (student photos)
+backend/uploads/
+backend/*.jpg
+backend/*.jpeg
+backend/*.png
+backend/*.gif
 
 # Optional: ignore log files
 /backend/logs/

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Attendance & Engagement Monitor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Classroom Attendance & Engagement Monitor</h1>
+            <p class="subtitle">Privacy-safe, local AI-powered monitoring system</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="showTab('dashboard')">Dashboard</button>
+            <button class="tab-btn" onclick="showTab('students')">Students</button>
+            <button class="tab-btn" onclick="showTab('reports')">Reports</button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Students</h3>
+                    <p class="stat-number" id="total-students">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Present Today</h3>
+                    <p class="stat-number" id="present-today">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Avg Engagement</h3>
+                    <p class="stat-number" id="avg-engagement">0%</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Attendance Rate</h3>
+                    <p class="stat-number" id="attendance-rate">0%</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Top Engaged Students</h2>
+                <div id="top-students" class="student-list"></div>
+            </div>
+
+            <div class="section">
+                <h2>Recent Activity</h2>
+                <div id="recent-activity" class="activity-list"></div>
+            </div>
+        </div>
+
+        <!-- Students Tab -->
+        <div id="students" class="tab-content">
+            <div class="section">
+                <h2>Register New Student</h2>
+                <form id="student-form" class="form">
+                    <input type="text" id="student-name" placeholder="Student Name" required>
+                    <input type="file" id="student-photo" accept="image/*">
+                    <button type="submit">Register Student</button>
+                </form>
+            </div>
+
+            <div class="section">
+                <h2>Registered Students</h2>
+                <div id="students-list" class="student-list"></div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports" class="tab-content">
+            <div class="section">
+                <h2>Daily Report</h2>
+                <div class="report-controls">
+                    <input type="date" id="report-date" value="">
+                    <button onclick="loadDailyReport()">Load Report</button>
+                </div>
+            </div>
+
+            <div id="report-content" class="report-content"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
