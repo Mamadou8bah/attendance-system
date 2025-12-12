@@ -66,7 +66,8 @@ body {
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
 }
 
 header {
@@ -74,22 +75,69 @@ header {
     color: white;
     padding: 30px;
     text-align: center;
+    position: relative;
+    z-index: 999;
+}
+
+.header-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
 header h1 {
     font-size: 2.5em;
     margin-bottom: 10px;
+    flex: 1;
+}
+
+.menu-toggle {
+    display: none;
+    flex-direction: column;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+}
+
+.menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background: white;
+    margin: 3px 0;
+    transition: 0.3s;
+    border-radius: 2px;
+}
+
+.menu-toggle.active span:nth-child(1) {
+    transform: rotate(-45deg) translate(-5px, 6px);
+}
+
+.menu-toggle.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.menu-toggle.active span:nth-child(3) {
+    transform: rotate(45deg) translate(-5px, -6px);
 }
 
 .subtitle {
     opacity: 0.9;
     font-size: 1.1em;
+    margin-top: 10px;
 }
 
 .tabs {
     display: flex;
     background: #f5f5f5;
     border-bottom: 2px solid #e0e0e0;
+    position: relative;
 }
 
 .tab-btn {
@@ -352,30 +400,73 @@ button:hover {
 
     .container {
         border-radius: 8px;
+        overflow: visible;
     }
 
     header {
         padding: 20px 15px;
+        position: relative;
+        z-index: 999;
+    }
+
+    .header-content {
+        position: relative;
+    }
+
+    .menu-toggle {
+        display: flex;
     }
 
     header h1 {
         font-size: 1.8em;
         margin-bottom: 8px;
+        text-align: left;
+        padding-right: 40px;
     }
 
     .subtitle {
         font-size: 0.95em;
+        margin-top: 15px;
     }
 
     .tabs {
-        flex-wrap: wrap;
+        display: none !important;
+        flex-direction: column;
+        position: relative;
+        left: 0;
+        right: 0;
+        background: white;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1001;
+        border-bottom: 2px solid #e0e0e0;
+        border-top: 2px solid #e0e0e0;
+        margin-top: 0;
     }
 
-    .tab-btn {
-        padding: 12px 15px;
-        font-size: 0.9em;
-        flex: 1 1 33.333%;
-        min-width: 100px;
+    .tabs.active {
+        display: flex !important;
+    }
+
+    .tabs .tab-btn {
+        width: 100%;
+        text-align: left;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e0e0e0;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        flex: none;
+    }
+
+    .tabs .tab-btn:last-child {
+        border-bottom: none;
+    }
+
+    .tabs .tab-btn.active {
+        background: #f0f0f0;
+        border-left: 4px solid #4a90e2;
+        border-bottom: 1px solid #e0e0e0;
     }
 
     .tab-content {
@@ -456,13 +547,17 @@ button:hover {
 
     .subtitle {
         font-size: 0.85em;
+        margin-top: 12px;
     }
 
-    .tab-btn {
-        padding: 10px 8px;
-        font-size: 0.85em;
-        flex: 1 1 100%;
-        min-width: auto;
+    header h1 {
+        font-size: 1.3em;
+        padding-right: 35px;
+    }
+
+    .menu-toggle span {
+        width: 20px;
+        height: 2px;
     }
 
     .tab-content {

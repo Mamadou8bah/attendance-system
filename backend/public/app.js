@@ -1,6 +1,13 @@
 const API_URL = 'http://localhost:3000/api';
 
-// --- Courses helpers ---
+function toggleMenu() {
+    const nav = document.getElementById('main-nav');
+    const menuBtn = document.querySelector('.menu-toggle');
+    if (nav && menuBtn) {
+        nav.classList.toggle('active');
+        menuBtn.classList.toggle('active');
+    }
+}
 
 async function loadCoursesIntoSelect(selectId) {
     try {
@@ -46,7 +53,6 @@ async function promptNewCourse() {
             return;
         }
 
-        // Reload course selects
         await loadCoursesIntoSelect('course-select');
         await loadCoursesIntoSelect('report-course-select');
 
@@ -65,6 +71,15 @@ function showTab(tabName, event) {
     document.getElementById(tabName).classList.add('active');
     if (event && event.target) {
         event.target.classList.add('active');
+    } else if (window.event && window.event.target) {
+        window.event.target.classList.add('active');
+    }
+    
+    const nav = document.getElementById('main-nav');
+    const menuBtn = document.querySelector('.menu-toggle');
+    if (window.innerWidth <= 768 && nav && menuBtn) {
+        nav.classList.remove('active');
+        menuBtn.classList.remove('active');
     }
     
     if (tabName === 'dashboard') loadDashboard();

@@ -9,11 +9,18 @@
 <body>
     <div class="container">
         <header>
-            <h1>Classroom Attendance & Engagement Monitor</h1>
+            <div class="header-content">
+                <h1>Classroom Attendance & Engagement Monitor</h1>
+                <button class="menu-toggle" onclick="toggleMenu()" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
             <p class="subtitle">Privacy-safe, local AI-powered monitoring system</p>
         </header>
 
-        <nav class="tabs">
+        <nav class="tabs" id="main-nav">
             <button class="tab-btn active" onclick="showTab('dashboard', event)">Dashboard</button>
             <button class="tab-btn" onclick="showTab('students', event)">Students</button>
             <button class="tab-btn" onclick="showTab('reports', event)">Reports</button>
