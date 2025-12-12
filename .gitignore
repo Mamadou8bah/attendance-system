@@ -1,0 +1,55 @@
+# -------------------------
+# Global OS noise
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Node.js / Express backend
+# -------------------------
+/backend/node_modules/
+/backend/.env
+/backend/npm-debug.log
+/backend/yarn-error.log
+
+# SQLite database (should not be in Git)
+backend/db.sqlite
+backend/*.sqlite
+backend/*.sqlite-journal
+
+# Optional: ignore log files
+/backend/logs/
+*.log
+
+# -------------------------
+# Python / ai-engine
+# -------------------------
+/ai-engine/__pycache__/
+/ai-engine/*.pyc
+/ai-engine/*.pyo
+/ai-engine/.python-version
+
+# Virtual environment folders
+/ai-engine/venv/
+/ai-engine/.venv/
+/ai-engine/env/
+/ai-engine/.env/
+
+# Python build artifacts
+/ai-engine/*.egg-info/
+/ai-engine/dist/
+/ai-engine/build/
+
+# -------------------------
+# Common environment files
+# -------------------------
+.env
+*.env
+.env.*
+
+# -------------------------
+# Editor/IDE files
+# -------------------------
+.vscode/
+.idea/
+*.swp
