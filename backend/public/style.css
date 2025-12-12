@@ -171,6 +171,119 @@ header h1 {
     display: block;
 }
 
+.session-control {
+    background: #f0f8ff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #cce5ff;
+}
+
+.session-control h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.control-panel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 15px;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.control-panel label {
+    font-weight: 500;
+    color: #555;
+    white-space: nowrap;
+}
+
+.control-panel select {
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1em;
+    min-width: 160px;
+}
+
+.control-panel input[type="number"] {
+    padding: 8px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1em;
+    width: 80px;
+}
+
+.primary-btn {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+}
+
+.primary-btn:hover {
+    background: #357abd;
+}
+
+.btn-add-course {
+    padding: 6px 12px;
+    font-size: 0.9em;
+}
+
+.btn-start {
+    background-color: #28a745;
+}
+
+.btn-start:hover {
+    background-color: #218838;
+}
+
+.danger-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+}
+
+.danger-btn:hover {
+    background-color: #c82333;
+}
+
+.danger-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.timer {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-left: auto;
+    color: #333;
+}
+
+.session-note {
+    margin-bottom: 0;
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.5;
+}
+
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -473,6 +586,55 @@ button:hover {
         padding: 20px 15px;
     }
 
+    .session-control {
+        padding: 15px;
+    }
+
+    .session-control h2 {
+        font-size: 1.3em;
+        margin-bottom: 12px;
+    }
+
+    .control-panel {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .control-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .control-group label {
+        font-size: 0.9em;
+    }
+
+    .control-panel select,
+    .control-panel input[type="number"] {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .primary-btn,
+    .danger-btn {
+        width: 100%;
+        padding: 10px 15px;
+    }
+
+    .timer {
+        margin-left: 0;
+        margin-top: 10px;
+        text-align: center;
+        font-size: 1.1em;
+    }
+
+    .session-note {
+        font-size: 0.85em;
+        margin-top: 12px;
+    }
+
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
@@ -562,6 +724,42 @@ button:hover {
 
     .tab-content {
         padding: 15px 10px;
+    }
+
+    .session-control {
+        padding: 12px;
+    }
+
+    .session-control h2 {
+        font-size: 1.2em;
+        margin-bottom: 10px;
+    }
+
+    .control-panel {
+        gap: 10px;
+    }
+
+    .control-group {
+        gap: 6px;
+    }
+
+    .control-group label {
+        font-size: 0.85em;
+    }
+
+    .primary-btn,
+    .danger-btn {
+        font-size: 0.9em;
+        padding: 8px 12px;
+    }
+
+    .timer {
+        font-size: 1em;
+    }
+
+    .session-note {
+        font-size: 0.8em;
+        margin-top: 10px;
     }
 
     .stats-grid {
